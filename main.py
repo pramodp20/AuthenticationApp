@@ -2,12 +2,13 @@ import pyotp
 import json
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer, QTime
+from PyQt5.QtCore import QTimer, QTime, QSharedMemory
 
 data = None
 current_message_box = None
+tray_icon = None
 
 def get_json():
     global data
@@ -61,6 +62,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+        tray_icon.showMessage("Authentication App", "The application is still running in the system tray.", QSystemTrayIcon.Information, 2000)
 
 class TOTPWindow(QMainWindow):
     def __init__(self, account, icon):
@@ -108,9 +110,22 @@ class TOTPWindow(QMainWindow):
         self.close()
 
 def main():
-    global main_window
+    global main_window, tray_icon
+    print("started")
     app = QApplication(sys.argv)
-
+    app.setQuitOnLastWindowClosed(False)
+    # Create shared memory object
+    shared_memory = QSharedMemory("MyAppInstance")
+    if shared_memory.attach():
+        # If another instance is running, show a message box and exit
+        QMessageBox.warning(None, "Warning", "Another instance of the application is already running.")
+        sys.exit(0)
+    else:
+        # Create shared memory segment
+        if not shared_memory.create(1):
+            QMessageBox.critical(None, "Error", "Unable to create shared memory segment.")
+            sys.exit(1)
+    
     # Determine the path to the icon file
     if hasattr(sys, '_MEIPASS'):
         icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
