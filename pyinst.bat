@@ -1,1 +1,1 @@
-pyinstaller --name MyApp --icon=icon.ico --add-data "key.json;." main.py
+pyinstaller --onefile --windowed new_main.py
